@@ -36,24 +36,43 @@ class HTTPClient(object):
     #def get_host_port(self,url):
 
     def connect(self, host, port):
+        if port is None or port == '': 
+            port = 80
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((host, port))
         return None
 
     def get_code(self, data):
-        return None
+        return self.parse_request()[0]
 
     def get_headers(self,data):
-        return None
+        return self.parse_request()[1]
 
     def get_body(self, data):
-        return None
+        return self.parse_request()[2]
     
     def sendall(self, data):
         self.socket.sendall(data.encode('utf-8'))
         
     def close(self):
         self.socket.close()
+
+    def parse_request(self, req):
+        url = ''
+        headers = {}
+        lines = req.splitlines()
+        inbody = False
+        body = ''
+        for line in lines[1:]:
+            if line.strip() == "":
+                inbody = True
+            if inbody:
+                body += line
+            else:
+                k, v = line.split(":", 1)
+                headers[k.strip()] = v.strip()
+        code = int(lines[0].split()[1])
+        return code, headers, body
 
     # read everything from the socket
     def recvall(self, sock):
@@ -70,11 +89,33 @@ class HTTPClient(object):
     def GET(self, url, args=None):
         code = 500
         body = ""
-        return HTTPResponse(code, body)
+        o = urllib.parse.urlparse(url)
+        hostname, port, path = o.hostname, o.port, o.path
+        print("info:"+hostname, port, path)
+        self.connect(hostname, port)
+        query = ""
+        if args is not None: query = query = "?" + urllib.parse.urlencode(args)
+
+        self.sendall("GET " + path + query + " HTTP/1.1\r\nHost: "+ hostname + "\r\nAccept: text/html;charset=utf-8,*/*;charset=utf-8\r\nAccept-Charset: UTF-8\r\n\r\n")
+        response = self.recvall(self.socket)
+        print(response) 
+        code, headers, body = self.parse_request(response)
+        
+        return HTTPResponse(code, body)    
 
     def POST(self, url, args=None):
         code = 500
         body = ""
+        o = urllib.parse.urlparse(url)
+        hostname, port, path, query = o.hostname, o.port, o.path, o.query
+        self.connect(hostname, port)
+        query = ""
+        if args is not None: query = query = urllib.parse.urlencode(args)
+        length = str(len(query))
+        self.sendall("POST " + path + " HTTP/1.1\r\nHost: "+ hostname + "\r\nAccept: text/html;charset=utf-8,*/*;charset=utf-8\r\nAccept-Charset: UTF-8\r\nContent-Length:" + length + "\r\n\r\n" + query)
+        response = self.recvall(self.socket)
+        print(response) 
+        code, headers, body = self.parse_request(response)
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):

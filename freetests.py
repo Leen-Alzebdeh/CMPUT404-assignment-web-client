@@ -160,6 +160,7 @@ class TestHTTPClient(unittest.TestCase):
         MyHTTPHandler.get = nothing_available
         http = httpclass.HTTPClient()
         req = http.GET("http://%s:%d/49872398432" % (BASEHOST,BASEPORT) )
+        print(req.code == 404)
         self.assertTrue(req != None, "None Returned!")
         self.assertTrue(req.code == 404)
 
