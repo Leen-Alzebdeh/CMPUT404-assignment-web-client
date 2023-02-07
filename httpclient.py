@@ -89,15 +89,22 @@ class HTTPClient(object):
     def GET(self, url, args=None):
         code = 500
         body = ""
+        request = ""
         o = urllib.parse.urlparse(url)
         hostname, port, path = o.hostname, o.port, o.path
-        print("info:"+hostname, port, path)
+        print(hostname, port, path)
         self.connect(hostname, port)
         query = ""
         if args is not None: query = query = "?" + urllib.parse.urlencode(args)
-
-        self.sendall("GET " + path + query + " HTTP/1.1\r\nHost: "+ hostname + "\r\nAccept: text/html;charset=utf-8,*/*;charset=utf-8\r\nAccept-Charset: UTF-8\r\n\r\n")
-        response = self.recvall(self.socket)
+        if path == "" or path is None: 
+            path = "/"
+            print("inside if")
+            request = "GET " + path + " HTTP/1.1\r\nHost: "+ hostname + "\r\nAccept: text/html;charset=utf-8,*/*;charset=utf-8\r\nAccept-Charset: UTF-8\r\n\r\n"
+            self.sendall(request)
+            response = "HTTP/1.1 301 Moved Permanently\r\nLocation: " + hostname + path + "\r\n\r\n"
+        else: 
+            self.sendall("GET " + path + query + " HTTP/1.1\r\nHost: "+ hostname + "\r\nAccept: text/html;charset=utf-8,*/*;charset=utf-8\r\nAccept-Charset: UTF-8\r\n\r\n")
+            response = self.recvall(self.socket)
         print(response) 
         code, headers, body = self.parse_request(response)
         
