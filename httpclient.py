@@ -99,6 +99,7 @@ class HTTPClient(object):
         self.sendall(request)
         response = self.recvall(self.socket)
         print(response) 
+        self.socket.shutdown(socket.SHUT_WR)
         self.close()
         code, headers, body = self.parse_request(response)
         
@@ -112,10 +113,11 @@ class HTTPClient(object):
         hostname, port, path = o.hostname, o.port or 80, o.path or "/"
         self.connect(hostname, port)
         query = ""
-        if args is not None: query = query = urllib.parse.urlencode(args)
+        if args is not None: query = urllib.parse.urlencode(args)
         self.sendall("POST " + path + " HTTP/1.1\r\nHost: "+ hostname + "\r\nAccept: text/html;charset=utf-8,*/*;charset=utf-8\r\nContent-Length:" + str(len(query)) + "\r\n\r\n" + query)
         response = self.recvall(self.socket)
-        print(response) 
+        print(response)
+        self.socket.shutdown(socket.SHUT_WR) 
         self.close()
         code, headers, body = self.parse_request(response)
         return HTTPResponse(code, body)
