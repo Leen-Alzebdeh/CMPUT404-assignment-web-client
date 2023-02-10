@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # coding: utf-8
-# Copyright 2016 Abram Hindle, https://github.com/tywtyw2002, and https://github.com/treedust
+# Copyright 2023 Abram Hindle, https://github.com/tywtyw2002, and https://github.com/treedust
+# Contriutor: Leen ALZEBDEH
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,20 +37,18 @@ class HTTPClient(object):
     #def get_host_port(self,url):
 
     def connect(self, host, port):
-        if port is None or port == '': 
-            port = 80
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((host, port))
         return None
 
     def get_code(self, data):
-        return self.parse_request()[0]
+        pass
 
     def get_headers(self,data):
-        return self.parse_request()[1]
+        pass
 
     def get_body(self, data):
-        return self.parse_request()[2]
+        pass
     
     def sendall(self, data):
         self.socket.sendall(data.encode('utf-8'))
@@ -58,7 +57,6 @@ class HTTPClient(object):
         self.socket.close()
 
     def parse_request(self, req):
-        url = ''
         headers = {}
         lines = req.splitlines()
         inbody = False
@@ -86,26 +84,22 @@ class HTTPClient(object):
                 done = not part
         return buffer.decode('utf-8')
 
-    def GET(self, url, args=None):
+    def GET(self, url, args = None):
         code = 500
         body = ""
         request = ""
+
         o = urllib.parse.urlparse(url)
-        hostname, port, path = o.hostname, o.port, o.path
+        hostname, port, path = o.hostname, o.port or 80, o.path or "/"
         print(hostname, port, path)
         self.connect(hostname, port)
         query = ""
         if args is not None: query = query = "?" + urllib.parse.urlencode(args)
-        if path == "" or path is None: 
-            path = "/"
-            print("inside if")
-            request = "GET " + path + " HTTP/1.1\r\nHost: "+ hostname + "\r\nAccept: text/html;charset=utf-8,*/*;charset=utf-8\r\nAccept-Charset: UTF-8\r\n\r\n"
-            self.sendall(request)
-            response = "HTTP/1.1 301 Moved Permanently\r\nLocation: " + hostname + path + "\r\n\r\n"
-        else: 
-            self.sendall("GET " + path + query + " HTTP/1.1\r\nHost: "+ hostname + "\r\nAccept: text/html;charset=utf-8,*/*;charset=utf-8\r\nAccept-Charset: UTF-8\r\n\r\n")
-            response = self.recvall(self.socket)
+        request = "GET " + path + query + " HTTP/1.1\r\nHost: "+ hostname + "\r\nAccept: text/html;charset=utf-8,*/*;charset=utf-8\r\n\r\n"
+        self.sendall(request)
+        response = self.recvall(self.socket)
         print(response) 
+        self.close()
         code, headers, body = self.parse_request(response)
         
         return HTTPResponse(code, body)    
@@ -113,15 +107,16 @@ class HTTPClient(object):
     def POST(self, url, args=None):
         code = 500
         body = ""
+
         o = urllib.parse.urlparse(url)
-        hostname, port, path, query = o.hostname, o.port, o.path, o.query
+        hostname, port, path = o.hostname, o.port or 80, o.path or "/"
         self.connect(hostname, port)
         query = ""
         if args is not None: query = query = urllib.parse.urlencode(args)
-        length = str(len(query))
-        self.sendall("POST " + path + " HTTP/1.1\r\nHost: "+ hostname + "\r\nAccept: text/html;charset=utf-8,*/*;charset=utf-8\r\nAccept-Charset: UTF-8\r\nContent-Length:" + length + "\r\n\r\n" + query)
+        self.sendall("POST " + path + " HTTP/1.1\r\nHost: "+ hostname + "\r\nAccept: text/html;charset=utf-8,*/*;charset=utf-8\r\nContent-Length:" + str(len(query)) + "\r\n\r\n" + query)
         response = self.recvall(self.socket)
         print(response) 
+        self.close()
         code, headers, body = self.parse_request(response)
         return HTTPResponse(code, body)
 
